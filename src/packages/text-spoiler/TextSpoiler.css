@@ -11,7 +11,8 @@
     line-height: 1.12;
     letter-spacing: -0.02em;
     text-align: center;
-    color: #b8e0d8;
+    color: transparent;
+    user-select: none;
 }
 
 .text-spoiler-canvas {

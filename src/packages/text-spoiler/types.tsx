@@ -16,3 +16,14 @@ export interface Particle {
     tx: number;
     ty: number;
 }
+
+export interface FontSpec {
+    font: string;
+    lineHeight: number;
+    letterSpacing: string;
+}
+
+export interface Point {
+    x: number;
+    y: number;
+}
