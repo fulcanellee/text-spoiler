@@ -1,14 +1,18 @@
-import {FC, useEffect, useRef} from 'react';
-import type {FontSpec, Particle, ParticleSpoilerProps, Point} from './types';
+import { FC, useEffect, useRef } from 'react';
+import type { FontSpec, Particle, ParticleSpoilerProps, Point, SpoilerState } from './types';
 import './TextSpoiler.css';
 
-const GAP = 4;
 const MAX_PARTICLES = 4000;
+const INK = '184, 224, 216';
 
 type Ctx2D = CanvasRenderingContext2D & { letterSpacing?: string };
 
 export const TextSpoiler: FC<ParticleSpoilerProps> = (props) => {
-    const { text = 'The secret is hidden in the dots' } = props
+    const {
+        text = 'The secret is hidden in the dots',
+        gap = 4,
+        speed = 3,
+    } = props;
 
     const stageRef = useRef<HTMLDivElement>(null);
     const textRef = useRef<HTMLDivElement>(null);
@@ -21,43 +25,44 @@ export const TextSpoiler: FC<ParticleSpoilerProps> = (props) => {
 
         if (!stage || !textEl || !canvas) {
             return;
-
         }
 
-        let raf = 0;
+        let raf: number | null = null;
         let cancelled = false;
-        let onClick: (() => void) | null = null;
+        const cleanups: Array<() => void> = [];
 
-        const fontsReady: Promise<unknown> = 'fonts' in document ? document.fonts.ready : Promise.resolve();
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            stage.classList.add('settled');
+            stage.setAttribute('aria-pressed', 'true');
+            return;
+        }
 
-        fontsReady.then(() => {
+        const boot = async (): Promise<void> => {
+            if ('fonts' in document) {
+                try {
+                    const cs = getComputedStyle(textEl);
+                    await document.fonts.load(
+                        `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`,
+                        text,
+                    );
+                    await document.fonts.ready;
+                } catch {}
+            }
+
             if (cancelled) {
                 return;
             }
 
-            const rect = stage.getBoundingClientRect();
             const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-            const W = rect.width;
-            const H = Math.max(rect.height, 40);
-
-            canvas.width = Math.round(W * dpr);
-            canvas.height = Math.round(H * dpr);
-
-            const ctx = canvas.getContext('2d');
-
-            if (!ctx) {
-                return;
-            }
-
-            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-            const cs = getComputedStyle(textEl);
-            const spec: FontSpec = {
-                font: `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`,
-                lineHeight: parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.12,
-                letterSpacing: cs.letterSpacing || '0px',
-            };
+            let W = 0;
+            let H = 0;
+            let ctx: CanvasRenderingContext2D;
+            let spec: FontSpec;
+            let targets: Point[] = [];
+            let particles: Particle[] = [];
+            let state: SpoilerState = 'hidden';
+            let revealStarted = false;
 
             const wrapLines = (mctx: Ctx2D, str: string): string[] => {
                 mctx.font = spec.font;
@@ -91,7 +96,6 @@ export const TextSpoiler: FC<ParticleSpoilerProps> = (props) => {
                         }
                     }
                 }
-
                 return pts;
             };
 
@@ -107,17 +111,24 @@ export const TextSpoiler: FC<ParticleSpoilerProps> = (props) => {
 
                 const lines = wrapLines(octx, text);
                 const blockH = lines.length * spec.lineHeight;
-                const y0 = (H - blockH) / 2 + spec.lineHeight / 2;
+
+                const metrics = octx.measureText(text);
+                const ascent = metrics.fontBoundingBoxAscent ?? spec.lineHeight * 0.4;
+                const descent = metrics.fontBoundingBoxDescent ?? spec.lineHeight * 0.1;
+
+                const y0 = (H - blockH) / 2
+                    + spec.lineHeight / 2
+                    + (ascent - descent) / 2;
 
                 octx.font = spec.font;
                 octx.letterSpacing = spec.letterSpacing;
                 octx.textAlign = 'center';
-                octx.textBaseline = 'middle';
+                octx.textBaseline = 'alphabetic';
                 octx.fillStyle = '#fff';
                 lines.forEach((ln, i) => octx.fillText(ln, W / 2, y0 + i * spec.lineHeight));
 
                 const img = octx.getImageData(0, 0, off.width, off.height).data;
-                let g = GAP;
+                let g = gap;
                 let pts = pick(img, off.width, off.height, g);
 
                 while (pts.length > MAX_PARTICLES && g < 8) {
@@ -128,95 +139,236 @@ export const TextSpoiler: FC<ParticleSpoilerProps> = (props) => {
                 return pts;
             };
 
-            const targets = sampleTargets();
-
-            const makeParticle = (i: number): Particle => {
-                // particle alpha 0.35...0.90
+            const makeParticle = (): Particle => {
                 const a = 0.35 + Math.random() * 0.55;
 
                 return {
                     x: Math.random() * W,
                     y: Math.random() * H,
                     angle: Math.random() * Math.PI * 2,
-                    speed: 0.15 + Math.random() * 0.35, // 0.15...0.50
-                    pace: 1,
+                    speed: 0.15 + Math.random() * 0.35,
+                    pace: 0.8 + Math.random() * 0.5,
                     r: 0.6 + Math.random() * 0.9,
                     a,
                     baseA: a,
-                    tx: targets[i].x,
-                    ty: targets[i].y,
+                    tx: 0,
+                    ty: 0,
                 };
             };
 
-            const particles: Particle[] = targets.map((_, i) => makeParticle(i));
-            let assembled = false;
-
             const drift = (p: Particle): void => {
-                p.angle += (Math.random() - 0.5) * 0.3; // course correction -0.15..0.15
+                p.angle += (Math.random() - 0.5) * 0.3;
                 p.x += Math.cos(p.angle) * p.speed;
                 p.y += Math.sin(p.angle) * p.speed;
 
-                // rebound off the walls
                 if (p.x < 0) {
                     p.x = 0;
-                    p.angle = Math.PI - p.angle; // mirroring the angle
+                    p.angle = Math.PI - p.angle;
                 } else if (p.x > W) {
                     p.x = W;
-                    p.angle = Math.PI - p.angle; // mirroring the angle
+                    p.angle = Math.PI - p.angle;
                 }
 
-                // rebound off the walls
                 if (p.y < 0) {
                     p.y = 0;
-                    p.angle = -p.angle; // mirroring the angle
+                    p.angle = -p.angle;
                 } else if (p.y > H) {
                     p.y = H;
-                    p.angle = -p.angle; // mirroring the angle
+                    p.angle = -p.angle;
+                }
+            };
+
+            const assignTargets = (): void => {
+                const pts = [...particles].sort((a, b) => a.x - b.x);
+                const tgs = [...targets].sort((a, b) => a.x - b.x);
+
+                for (let i = 0; i < pts.length; i++) {
+                    const t = tgs[i % tgs.length];
+                    pts[i].tx = t.x + (Math.random() - 0.5) * 1.5;
+                    pts[i].ty = t.y + (Math.random() - 0.5) * 1.5;
                 }
             };
 
             const tick = (): void => {
                 ctx.clearRect(0, 0, W, H);
+                let settledCount = 0;
 
                 for (const p of particles) {
-                    if (!assembled) {
+                    if (state === 'assembling') {
+                        const dx = p.tx - p.x;
+                        const dy = p.ty - p.y;
+                        const dist = Math.hypot(dx, dy);
+                        const step = speed * p.pace;
+
+                        if (dist <= step) {
+                            p.x = p.tx;
+                            p.y = p.ty;
+                            settledCount++;
+                            if (revealStarted) {
+                                p.a *= 0.93;
+                            }
+                        } else {
+                            p.x += (dx / dist) * step;
+                            p.y += (dy / dist) * step;
+                        }
+                    } else {
                         drift(p);
                     }
-                    ctx.fillStyle = `rgba(184, 224, 216, ${p.a})`;
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-                    ctx.fill();
+
+                    if (p.a > 0.01) {
+                        ctx.fillStyle = `rgba(${INK}, ${p.a})`;
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
                 }
+
+                if (state === 'assembling') {
+                    if (!revealStarted && settledCount > particles.length * 0.55) {
+                        revealStarted = true;
+                        stage.classList.add('settled');
+                        stage.setAttribute('aria-pressed', 'true');
+                    }
+
+                    if (revealStarted && particles.every((p) => p.a <= 0.01)) {
+                        state = 'settled';
+                        revealStarted = false;
+                        ctx.clearRect(0, 0, W, H);
+                        raf = null; // цикл остановлен
+                        return;
+                    }
+                }
+
                 raf = requestAnimationFrame(tick);
             };
 
-            raf = requestAnimationFrame(tick);
+            const start = (): void => {
+                if (raf === null) {
+                    raf = requestAnimationFrame(tick);
+                }
+            };
 
-            onClick = () => {
-                assembled = !assembled;
-                if (assembled) {
+            const toggle = (): void => {
+                if (state === 'hidden') {
+                    state = 'assembling';
+                    assignTargets();
+                    start();
+                } else if (state === 'assembling') {
                     for (const p of particles) {
                         p.x = p.tx;
                         p.y = p.ty;
                     }
+                    if (!revealStarted) {
+                        revealStarted = true;
+                        stage.classList.add('settled');
+                        stage.setAttribute('aria-pressed', 'true');
+                    }
+                } else {
+                    state = 'hidden';
+                    stage.classList.remove('settled');
+                    stage.setAttribute('aria-pressed', 'false');
+                    for (const p of particles) {
+                        p.a = p.baseA;
+                        p.x += (Math.random() - 0.5) * 14;
+                        p.y += (Math.random() - 0.5) * 14;
+                    }
+                    start();
                 }
             };
-            stage.addEventListener('click', onClick);
-        });
+
+            const onKeyDown = (e: KeyboardEvent): void => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggle();
+                }
+            };
+
+            stage.addEventListener('click', toggle);
+            stage.addEventListener('keydown', onKeyDown);
+            cleanups.push(() => {
+                stage.removeEventListener('click', toggle);
+                stage.removeEventListener('keydown', onKeyDown);
+            });
+
+            const setup = (): void => {
+                const rect = stage.getBoundingClientRect();
+                W = rect.width;
+                H = Math.max(rect.height, 40);
+
+                canvas.width = Math.round(W * dpr);
+                canvas.height = Math.round(H * dpr);
+
+                const context = canvas.getContext('2d');
+                if (!context) {
+                    return;
+                }
+                context.setTransform(dpr, 0, 0, dpr, 0, 0);
+                ctx = context;
+
+                const cs = getComputedStyle(textEl);
+                spec = {
+                    font: `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`,
+                    lineHeight: parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.12,
+                    letterSpacing: cs.letterSpacing || '0px',
+                };
+
+                const wasSettled = state === 'settled';
+                targets = sampleTargets();
+                particles = targets.map(makeParticle);
+
+                if (!wasSettled) {
+                    state = 'hidden';
+                    stage.classList.remove('settled');
+                    start();
+                }
+            };
+
+            setup();
+
+            let resizeTimer = 0;
+            const observer = new ResizeObserver(() => {
+                window.clearTimeout(resizeTimer);
+                resizeTimer = window.setTimeout(() => {
+                    if (cancelled) {
+                        return;
+                    }
+                    const rect = stage.getBoundingClientRect();
+                    const w = rect.width;
+                    const h = Math.max(rect.height, 40);
+                    if (Math.abs(w - W) > 0.5 || Math.abs(h - H) > 0.5) {
+                        setup();
+                    }
+                }, 150);
+            });
+            observer.observe(stage);
+            cleanups.push(() => {
+                observer.disconnect();
+                window.clearTimeout(resizeTimer);
+            });
+        };
+
+        boot();
 
         return () => {
             cancelled = true;
-            cancelAnimationFrame(raf);
-            if (onClick) {
-                stage.removeEventListener('click', onClick);
+            if (raf !== null) {
+                cancelAnimationFrame(raf);
             }
+            cleanups.forEach((fn) => fn());
         };
-    }, [text]);
+    }, [text, gap, speed]);
 
     return (
-        <div ref={stageRef} className="text-spoiler-stage" role="button" tabIndex={0}>
+        <div
+            ref={stageRef}
+            className="text-spoiler-stage"
+            role="button"
+            tabIndex={0}
+            aria-pressed="false"
+            aria-label="Spoiler: click to show hidden text"
+        >
             <div ref={textRef} className="text-spoiler-text">{text}</div>
             <canvas ref={canvasRef} className="text-spoiler-canvas" aria-hidden="true" />
         </div>
     );
-}
+};

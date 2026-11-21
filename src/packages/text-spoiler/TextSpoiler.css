@@ -11,8 +11,18 @@
     line-height: 1.12;
     letter-spacing: -0.02em;
     text-align: center;
-    color: transparent;
+    color: #b8e0d8;
     user-select: none;
+    opacity: 0;
+    filter: blur(1px);
+    transition: opacity 0.7s ease, filter 0.7s ease;
+    will-change: opacity, filter;
+}
+
+.text-spoiler-stage.settled .text-spoiler-text {
+    opacity: 1;
+    filter: blur(0);
+    user-select: text;
 }
 
 .text-spoiler-canvas {
