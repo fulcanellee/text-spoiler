@@ -28,4 +28,4 @@ export interface Point {
     y: number;
 }
 
-export type SpoilerState = 'hidden' | 'assembling' | 'settled';
+export type SpoilerState = "hidden" | "assembling" | "settled";

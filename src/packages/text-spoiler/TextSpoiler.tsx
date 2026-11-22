@@ -1,15 +1,21 @@
-import { FC, useEffect, useRef } from 'react';
-import type { FontSpec, Particle, ParticleSpoilerProps, Point, SpoilerState } from './types';
-import './TextSpoiler.css';
+import { FC, useEffect, useRef } from "react";
+import type {
+    FontSpec,
+    Particle,
+    ParticleSpoilerProps,
+    Point,
+    SpoilerState,
+} from "./types";
+import "./TextSpoiler.css";
 
 const MAX_PARTICLES = 4000;
-const INK = '184, 224, 216';
+const INK = "184, 224, 216";
 
 type Ctx2D = CanvasRenderingContext2D & { letterSpacing?: string };
 
 export const TextSpoiler: FC<ParticleSpoilerProps> = (props) => {
     const {
-        text = 'The secret is hidden in the dots',
+        text = "The secret is hidden in the dots",
         gap = 4,
         speed = 3,
     } = props;
@@ -31,14 +37,14 @@ export const TextSpoiler: FC<ParticleSpoilerProps> = (props) => {
         let cancelled = false;
         const cleanups: Array<() => void> = [];
 
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-            stage.classList.add('settled');
-            stage.setAttribute('aria-pressed', 'true');
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            stage.classList.add("settled");
+            stage.setAttribute("aria-pressed", "true");
             return;
         }
 
         const boot = async (): Promise<void> => {
-            if ('fonts' in document) {
+            if ("fonts" in document) {
                 try {
                     const cs = getComputedStyle(textEl);
                     await document.fonts.load(
@@ -61,7 +67,7 @@ export const TextSpoiler: FC<ParticleSpoilerProps> = (props) => {
             let spec: FontSpec;
             let targets: Point[] = [];
             let particles: Particle[] = [];
-            let state: SpoilerState = 'hidden';
+            let state: SpoilerState = "hidden";
             let revealStarted = false;
 
             const wrapLines = (mctx: Ctx2D, str: string): string[] => {
@@ -69,9 +75,9 @@ export const TextSpoiler: FC<ParticleSpoilerProps> = (props) => {
                 mctx.letterSpacing = spec.letterSpacing;
                 const words = str.split(/\s+/).filter(Boolean);
                 const lines: string[] = [];
-                let line = '';
+                let line = "";
                 for (const w of words) {
-                    const probe = line ? line + ' ' + w : w;
+                    const probe = line ? line + " " + w : w;
                     if (line && mctx.measureText(probe).width > W) {
                         lines.push(line);
                         line = w;
@@ -85,7 +91,12 @@ export const TextSpoiler: FC<ParticleSpoilerProps> = (props) => {
                 return lines;
             };
 
-            const pick = (img: Uint8ClampedArray, w: number, h: number, g: number): Point[] => {
+            const pick = (
+                img: Uint8ClampedArray,
+                w: number,
+                h: number,
+                g: number,
+            ): Point[] => {
                 const pts: Point[] = [];
                 const step = Math.max(1, Math.round(g));
 
@@ -100,10 +111,12 @@ export const TextSpoiler: FC<ParticleSpoilerProps> = (props) => {
             };
 
             const sampleTargets = (): Point[] => {
-                const off = document.createElement('canvas');
+                const off = document.createElement("canvas");
                 off.width = Math.max(1, Math.round(W));
                 off.height = Math.max(1, Math.round(H));
-                const octx = off.getContext('2d', { willReadFrequently: true }) as Ctx2D | null;
+                const octx = off.getContext("2d", {
+                    willReadFrequently: true,
+                }) as Ctx2D | null;
 
                 if (!octx) {
                     return [];
@@ -113,19 +126,24 @@ export const TextSpoiler: FC<ParticleSpoilerProps> = (props) => {
                 const blockH = lines.length * spec.lineHeight;
 
                 const metrics = octx.measureText(text);
-                const ascent = metrics.fontBoundingBoxAscent ?? spec.lineHeight * 0.4;
-                const descent = metrics.fontBoundingBoxDescent ?? spec.lineHeight * 0.1;
+                const ascent =
+                    metrics.fontBoundingBoxAscent ?? spec.lineHeight * 0.4;
+                const descent =
+                    metrics.fontBoundingBoxDescent ?? spec.lineHeight * 0.1;
 
-                const y0 = (H - blockH) / 2
-                    + spec.lineHeight / 2
-                    + (ascent - descent) / 2;
+                const y0 =
+                    (H - blockH) / 2 +
+                    spec.lineHeight / 2 +
+                    (ascent - descent) / 2;
 
                 octx.font = spec.font;
                 octx.letterSpacing = spec.letterSpacing;
-                octx.textAlign = 'center';
-                octx.textBaseline = 'alphabetic';
-                octx.fillStyle = '#fff';
-                lines.forEach((ln, i) => octx.fillText(ln, W / 2, y0 + i * spec.lineHeight));
+                octx.textAlign = "center";
+                octx.textBaseline = "alphabetic";
+                octx.fillStyle = "#fff";
+                lines.forEach((ln, i) =>
+                    octx.fillText(ln, W / 2, y0 + i * spec.lineHeight),
+                );
 
                 const img = octx.getImageData(0, 0, off.width, off.height).data;
                 let g = gap;
@@ -194,7 +212,7 @@ export const TextSpoiler: FC<ParticleSpoilerProps> = (props) => {
                 let settledCount = 0;
 
                 for (const p of particles) {
-                    if (state === 'assembling') {
+                    if (state === "assembling") {
                         const dx = p.tx - p.x;
                         const dy = p.ty - p.y;
                         const dist = Math.hypot(dx, dy);
@@ -223,15 +241,18 @@ export const TextSpoiler: FC<ParticleSpoilerProps> = (props) => {
                     }
                 }
 
-                if (state === 'assembling') {
-                    if (!revealStarted && settledCount > particles.length * 0.55) {
+                if (state === "assembling") {
+                    if (
+                        !revealStarted &&
+                        settledCount > particles.length * 0.55
+                    ) {
                         revealStarted = true;
-                        stage.classList.add('settled');
-                        stage.setAttribute('aria-pressed', 'true');
+                        stage.classList.add("settled");
+                        stage.setAttribute("aria-pressed", "true");
                     }
 
                     if (revealStarted && particles.every((p) => p.a <= 0.01)) {
-                        state = 'settled';
+                        state = "settled";
                         revealStarted = false;
                         ctx.clearRect(0, 0, W, H);
                         raf = null; // цикл остановлен
@@ -249,24 +270,24 @@ export const TextSpoiler: FC<ParticleSpoilerProps> = (props) => {
             };
 
             const toggle = (): void => {
-                if (state === 'hidden') {
-                    state = 'assembling';
+                if (state === "hidden") {
+                    state = "assembling";
                     assignTargets();
                     start();
-                } else if (state === 'assembling') {
+                } else if (state === "assembling") {
                     for (const p of particles) {
                         p.x = p.tx;
                         p.y = p.ty;
                     }
                     if (!revealStarted) {
                         revealStarted = true;
-                        stage.classList.add('settled');
-                        stage.setAttribute('aria-pressed', 'true');
+                        stage.classList.add("settled");
+                        stage.setAttribute("aria-pressed", "true");
                     }
                 } else {
-                    state = 'hidden';
-                    stage.classList.remove('settled');
-                    stage.setAttribute('aria-pressed', 'false');
+                    state = "hidden";
+                    stage.classList.remove("settled");
+                    stage.setAttribute("aria-pressed", "false");
                     for (const p of particles) {
                         p.a = p.baseA;
                         p.x += (Math.random() - 0.5) * 14;
@@ -277,17 +298,17 @@ export const TextSpoiler: FC<ParticleSpoilerProps> = (props) => {
             };
 
             const onKeyDown = (e: KeyboardEvent): void => {
-                if (e.key === 'Enter' || e.key === ' ') {
+                if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     toggle();
                 }
             };
 
-            stage.addEventListener('click', toggle);
-            stage.addEventListener('keydown', onKeyDown);
+            stage.addEventListener("click", toggle);
+            stage.addEventListener("keydown", onKeyDown);
             cleanups.push(() => {
-                stage.removeEventListener('click', toggle);
-                stage.removeEventListener('keydown', onKeyDown);
+                stage.removeEventListener("click", toggle);
+                stage.removeEventListener("keydown", onKeyDown);
             });
 
             const setup = (): void => {
@@ -298,7 +319,7 @@ export const TextSpoiler: FC<ParticleSpoilerProps> = (props) => {
                 canvas.width = Math.round(W * dpr);
                 canvas.height = Math.round(H * dpr);
 
-                const context = canvas.getContext('2d');
+                const context = canvas.getContext("2d");
                 if (!context) {
                     return;
                 }
@@ -308,17 +329,19 @@ export const TextSpoiler: FC<ParticleSpoilerProps> = (props) => {
                 const cs = getComputedStyle(textEl);
                 spec = {
                     font: `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`,
-                    lineHeight: parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.12,
-                    letterSpacing: cs.letterSpacing || '0px',
+                    lineHeight:
+                        parseFloat(cs.lineHeight) ||
+                        parseFloat(cs.fontSize) * 1.12,
+                    letterSpacing: cs.letterSpacing || "0px",
                 };
 
-                const wasSettled = state === 'settled';
+                const wasSettled = state === "settled";
                 targets = sampleTargets();
                 particles = targets.map(makeParticle);
 
                 if (!wasSettled) {
-                    state = 'hidden';
-                    stage.classList.remove('settled');
+                    state = "hidden";
+                    stage.classList.remove("settled");
                     start();
                 }
             };
@@ -367,8 +390,14 @@ export const TextSpoiler: FC<ParticleSpoilerProps> = (props) => {
             aria-pressed="false"
             aria-label="Spoiler: click to show hidden text"
         >
-            <div ref={textRef} className="text-spoiler-text">{text}</div>
-            <canvas ref={canvasRef} className="text-spoiler-canvas" aria-hidden="true" />
+            <div ref={textRef} className="text-spoiler-text">
+                {text}
+            </div>
+            <canvas
+                ref={canvasRef}
+                className="text-spoiler-canvas"
+                aria-hidden="true"
+            />
         </div>
     );
 };
