@@ -1,6 +1,6 @@
 .text-spoiler-stage {
     position: relative;
-    display: inline-block; /* контейнер сжимается по тексту */
+    display: inline-block;
     max-width: 100%;
     cursor: pointer;
 }

@@ -29,3 +29,7 @@ export interface Point {
 }
 
 export type SpoilerState = "hidden" | "assembling" | "settled";
+
+export type Canvas2DContext = CanvasRenderingContext2D & {
+    letterSpacing?: string;
+};
