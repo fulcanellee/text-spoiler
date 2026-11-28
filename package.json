@@ -1,6 +1,6 @@
 {
   "name": "text-spoiler",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "React component that conceals text behind animated particles and reveals it like a spoiler",
   "keywords": [
     "react",
