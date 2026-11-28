@@ -1,46 +1,72 @@
-# Getting Started with Create React App
+# text-spoiler
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+React component that conceals text behind animated particles and reveals it like a spoiler. The text is rendered to a canvas, sampled into particles that drift like sand, and assembles into readable glyphs when revealed.
 
-## Available Scripts
+[Live demo](https://fulcanellee.github.io/text-spoiler)
 
-In the project directory, you can run:
+## Install
 
-### `npm start`
+```bash
+npm install text-spoiler
+```
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+React 18 or 19 is required as a peer dependency.
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## Usage
 
-### `npm test`
+```tsx
+import { useState } from "react";
+import { TextSpoiler } from "text-spoiler";
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+export function Secret() {
+    const [revealed, setRevealed] = useState(false);
 
-### `npm run build`
+    return (
+        <div onClick={() => setRevealed((v) => !v)}>
+            <TextSpoiler in={revealed} color="#8b5cf6">
+                The secret is hidden in the dots
+            </TextSpoiler>
+        </div>
+    );
+}
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+The component imports its own stylesheet. If your setup does not process CSS imports from dependencies, import it manually:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```ts
+import "text-spoiler/styles.css";
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Props
 
-### `npm run eject`
+| Prop         | Type         | Default   | Description                                        |
+| ------------ | ------------ | --------- | -------------------------------------------------- |
+| `in`         | `boolean`    | —         | `true` assembles the text, `false` scatters it back into particles |
+| `color`      | `string`     | `#b8e0d8` | Particle and text color (any CSS color)            |
+| `children`   | `string`     | —         | Plain text to conceal/reveal                       |
+| `onRevealed` | `() => void` | —         | Called when the reveal animation settles           |
+| `onHidden`   | `() => void` | —         | Called when the conceal animation settles          |
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+When the user prefers reduced motion (`prefers-reduced-motion: reduce`), the animation is skipped and the text is shown or hidden instantly.
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Demo
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+The repository contains a demo app:
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+```bash
+npm install
+npm start
+```
 
-## Learn More
+## Releasing
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Releases are published automatically from CI using [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) (OIDC, no tokens):
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+1. Bump `version` in `package.json` (e.g. `npm version patch --no-git-tag-version`) and merge the PR into `master`.
+2. The [Publish workflow](./.github/workflows/publish.yml) builds the library, publishes it with provenance and pushes a `vX.Y.Z` git tag.
+
+If the version in `package.json` already exists in the registry, the workflow skips publishing.
+
+## License
+
+[MIT](./LICENSE)
