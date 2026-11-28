@@ -101,13 +101,6 @@ export const assignTargets = (
     }
 };
 
-export const snapToTargets = (particles: Particle[]): void => {
-    for (const p of particles) {
-        p.x = p.tx;
-        p.y = p.ty;
-    }
-};
-
 export const scatterParticles = (particles: Particle[]): void => {
     for (const p of particles) {
         p.a = p.baseA;

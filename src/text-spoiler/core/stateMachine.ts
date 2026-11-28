@@ -2,7 +2,6 @@ import type { SpoilerState } from "../types";
 
 export type SpoilerEffect =
     | "assign-targets"
-    | "snap-to-targets"
     | "scatter"
     | "start-loop"
     | "stop-loop"
@@ -32,15 +31,8 @@ export const createSpoilerStateMachine = (): SpoilerStateMachine => {
                     state = "assembling";
                     return ["assign-targets", "start-loop"];
                 }
-                if (state === "assembling") {
-                    const effects: SpoilerEffect[] = ["snap-to-targets"];
-                    if (!revealStarted) {
-                        revealStarted = true;
-                        effects.push("reveal");
-                    }
-                    return effects;
-                }
                 state = "hidden";
+                revealStarted = false;
                 return ["conceal", "scatter", "start-loop"];
             }
             case "reveal-threshold": {

@@ -16,7 +16,6 @@ import {
     driftParticle,
     scatterParticles,
     seekTarget,
-    snapToTargets,
 } from "./particleSystem";
 import { createSpoilerStateMachine } from "./stateMachine";
 import type { SpoilerEffect } from "./stateMachine";
@@ -84,9 +83,6 @@ export const createSpoilerEngine = (
                 switch (effect) {
                     case "assign-targets":
                         assignTargets(particles, targets);
-                        break;
-                    case "snap-to-targets":
-                        snapToTargets(particles);
                         break;
                     case "scatter":
                         scatterParticles(particles);
