@@ -2,6 +2,8 @@
 
 React component that conceals text behind animated particles and reveals it like a spoiler. The text is rendered to a canvas, sampled into particles that drift like sand, and assembles into readable glyphs when revealed.
 
+**Zero runtime dependencies** — the package ships no dependencies at all, only `react`/`react-dom` as peer dependencies.
+
 [Live demo](https://fulcanellee.github.io/text-spoiler)
 
 ## Install
@@ -31,7 +33,7 @@ export function Secret() {
 }
 ```
 
-The component imports its own stylesheet. If your setup does not process CSS imports from dependencies, import it manually:
+The component imports its own stylesheet. It is a CSS module, so class names are scoped and will not collide with your app's styles. If your setup does not process CSS imports from dependencies, import it manually:
 
 ```ts
 import "text-spoiler/styles.css";
@@ -63,7 +65,7 @@ npm start
 Releases are published automatically from CI using [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) (OIDC, no tokens):
 
 1. Bump `version` in `package.json` (e.g. `npm version patch --no-git-tag-version`) and merge the PR into `master`.
-2. The [Publish workflow](./.github/workflows/publish.yml) builds the library, publishes it with provenance and pushes a `vX.Y.Z` git tag.
+2. The [Publish workflow](./.github/workflows/publish.yml) builds the library, publishes it with provenance, pushes a `vX.Y.Z` git tag and creates a GitHub Release with auto-generated notes.
 
 If the version in `package.json` already exists in the registry, the workflow skips publishing.
 

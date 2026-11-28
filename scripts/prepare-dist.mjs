@@ -7,7 +7,10 @@ if (process.argv[2] === "clean") {
 
 for (const dir of ["dist/esm", "dist/cjs"]) {
     mkdirSync(dir, { recursive: true });
-    copyFileSync("src/text-spoiler/TextSpoiler.css", `${dir}/TextSpoiler.css`);
+    copyFileSync(
+        "src/text-spoiler/text-spoiler.module.css",
+        `${dir}/text-spoiler.module.css`,
+    );
 }
 
 writeFileSync(

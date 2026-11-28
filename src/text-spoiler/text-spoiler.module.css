@@ -1,11 +1,11 @@
-.text-spoiler-stage {
+.stage {
     position: relative;
     display: inline-block;
     max-width: 100%;
     cursor: pointer;
 }
 
-.text-spoiler-text {
+.text {
     font-weight: 700;
     font-size: clamp(28px, 6vw, 64px);
     line-height: 1.12;
@@ -18,13 +18,13 @@
     will-change: opacity, filter;
 }
 
-.text-spoiler-stage.settled .text-spoiler-text {
+.stage.settled .text {
     opacity: 1;
     filter: blur(0);
     user-select: text;
 }
 
-.text-spoiler-canvas {
+.canvas {
     position: absolute;
     inset: 0;
     width: 100%;
