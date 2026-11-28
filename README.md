@@ -65,7 +65,7 @@ npm start
 Releases are published automatically from CI using [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) (OIDC, no tokens):
 
 1. Bump `version` in `package.json` (e.g. `npm version patch --no-git-tag-version`) and merge the PR into `master`.
-2. The [Publish workflow](./.github/workflows/publish.yml) builds the library, publishes it with provenance and pushes a `vX.Y.Z` git tag.
+2. The [Publish workflow](./.github/workflows/publish.yml) builds the library, publishes it with provenance, pushes a `vX.Y.Z` git tag and creates a GitHub Release with auto-generated notes.
 
 If the version in `package.json` already exists in the registry, the workflow skips publishing.
 
