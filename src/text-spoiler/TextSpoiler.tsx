@@ -4,10 +4,8 @@ import { createSpoilerEngine } from "./core/engine";
 import { DEFAULT_PARTICLE_COLOR } from "./core/constants";
 import "./TextSpoiler.css";
 
-const TEXT = "The secret is hidden in the dots";
-
 export const TextSpoiler: FC<TextSpoilerProps> = (props) => {
-    const { color = DEFAULT_PARTICLE_COLOR } = props;
+    const { color = DEFAULT_PARTICLE_COLOR, children: text } = props;
 
     const stageRef = useRef<HTMLDivElement>(null);
     const textRef = useRef<HTMLDivElement>(null);
@@ -29,14 +27,14 @@ export const TextSpoiler: FC<TextSpoilerProps> = (props) => {
         }
 
         const engine = createSpoilerEngine(stage, textEl, canvas, {
-            text: TEXT,
+            text,
             color,
             onReveal: () => setSettled(true),
             onConceal: () => setSettled(false),
         });
 
         return () => engine.destroy();
-    }, [color]);
+    }, [color, text]);
 
     return (
         <div
@@ -50,7 +48,7 @@ export const TextSpoiler: FC<TextSpoilerProps> = (props) => {
             aria-label="Spoiler: click to show hidden text"
         >
             <div ref={textRef} className="text-spoiler-text">
-                {TEXT}
+                {text}
             </div>
             <canvas
                 ref={canvasRef}

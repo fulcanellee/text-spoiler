@@ -6,7 +6,7 @@ function App() {
     return (
         <div className="App">
             <header className="App-header">
-                <TextSpoiler />
+                <TextSpoiler>The secret is hidden in the dots</TextSpoiler>
             </header>
         </div>
     );

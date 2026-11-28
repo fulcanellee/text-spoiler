@@ -1,5 +1,6 @@
 export interface TextSpoilerProps {
     color?: string;
+    children: string;
 }
 
 export interface Particle {
