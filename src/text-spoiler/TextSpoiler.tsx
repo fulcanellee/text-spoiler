@@ -73,7 +73,7 @@ export const TextSpoiler: FC<TextSpoilerProps> = (props) => {
                 settled ? "text-spoiler-stage settled" : "text-spoiler-stage"
             }
         >
-            <div ref={textRef} className="text-spoiler-text">
+            <div ref={textRef} className="text-spoiler-text" style={{ color }}>
                 {text}
             </div>
             <canvas
