@@ -4,6 +4,10 @@ export const GAP_STEP = 0.5;
 export const ALPHA_THRESHOLD = 128;
 
 export const INK_RGB = "184, 224, 216";
+export const DEFAULT_PARTICLE_COLOR = "#b8e0d8";
+
+export const SAMPLING_GAP = 4;
+export const ASSEMBLE_SPEED = 3;
 
 export const MAX_DEVICE_PIXEL_RATIO = 2;
 export const MIN_STAGE_HEIGHT = 40;

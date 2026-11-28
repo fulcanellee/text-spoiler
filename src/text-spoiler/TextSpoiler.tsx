@@ -1,14 +1,13 @@
 import { FC, useEffect, useRef, useState } from "react";
-import type { ParticleSpoilerProps } from "./types";
+import type { TextSpoilerProps } from "./types";
 import { createSpoilerEngine } from "./core/engine";
+import { DEFAULT_PARTICLE_COLOR } from "./core/constants";
 import "./TextSpoiler.css";
 
-export const TextSpoiler: FC<ParticleSpoilerProps> = (props) => {
-    const {
-        text = "The secret is hidden in the dots",
-        gap = 4,
-        speed = 3,
-    } = props;
+const TEXT = "The secret is hidden in the dots";
+
+export const TextSpoiler: FC<TextSpoilerProps> = (props) => {
+    const { color = DEFAULT_PARTICLE_COLOR } = props;
 
     const stageRef = useRef<HTMLDivElement>(null);
     const textRef = useRef<HTMLDivElement>(null);
@@ -30,15 +29,14 @@ export const TextSpoiler: FC<ParticleSpoilerProps> = (props) => {
         }
 
         const engine = createSpoilerEngine(stage, textEl, canvas, {
-            text,
-            gap,
-            speed,
+            text: TEXT,
+            color,
             onReveal: () => setSettled(true),
             onConceal: () => setSettled(false),
         });
 
         return () => engine.destroy();
-    }, [text, gap, speed]);
+    }, [color]);
 
     return (
         <div
@@ -52,7 +50,7 @@ export const TextSpoiler: FC<ParticleSpoilerProps> = (props) => {
             aria-label="Spoiler: click to show hidden text"
         >
             <div ref={textRef} className="text-spoiler-text">
-                {text}
+                {TEXT}
             </div>
             <canvas
                 ref={canvasRef}

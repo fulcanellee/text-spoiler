@@ -1,12 +1,14 @@
 import type { FontSpec, Particle, Point } from "../types";
 import {
     ALPHA_EPSILON,
+    ASSEMBLE_SPEED,
     LINE_HEIGHT_FALLBACK_RATIO,
     MAX_DEVICE_PIXEL_RATIO,
     MIN_STAGE_HEIGHT,
     RESIZE_DEBOUNCE_MS,
     RESIZE_TOLERANCE,
     REVEAL_SETTLED_RATIO,
+    SAMPLING_GAP,
 } from "./constants";
 import {
     assignTargets,
@@ -18,13 +20,16 @@ import {
 } from "./particleSystem";
 import { createSpoilerStateMachine } from "./stateMachine";
 import type { SpoilerEffect } from "./stateMachine";
-import { createRenderLoop, renderFrame } from "./renderer";
+import {
+    createRenderLoop,
+    renderFrame,
+    resolveColorChannels,
+} from "./renderer";
 import { sampleTextTargets } from "./textSampler";
 
 export interface SpoilerEngineOptions {
     text: string;
-    gap: number;
-    speed: number;
+    color: string;
     onReveal(): void;
     onConceal(): void;
 }
@@ -37,10 +42,11 @@ export const createSpoilerEngine = (
     stage: HTMLDivElement,
     textEl: HTMLDivElement,
     canvas: HTMLCanvasElement,
-    { text, gap, speed, onReveal, onConceal }: SpoilerEngineOptions,
+    { text, color, onReveal, onConceal }: SpoilerEngineOptions,
 ): SpoilerEngine => {
     let cancelled = false;
     const cleanups: Array<() => void> = [];
+    const ink = resolveColorChannels(color);
 
     const boot = async (): Promise<void> => {
         if ("fonts" in document) {
@@ -108,7 +114,9 @@ export const createSpoilerEngine = (
 
             for (const p of particles) {
                 if (assembling) {
-                    if (seekTarget(p, speed, machine.isRevealStarted())) {
+                    if (
+                        seekTarget(p, ASSEMBLE_SPEED, machine.isRevealStarted())
+                    ) {
                         settledCount++;
                     }
                 } else {
@@ -116,7 +124,7 @@ export const createSpoilerEngine = (
                 }
             }
 
-            renderFrame(ctx, particles, W, H);
+            renderFrame(ctx, particles, W, H, ink);
 
             if (assembling) {
                 if (settledCount > particles.length * REVEAL_SETTLED_RATIO) {
@@ -186,11 +194,9 @@ export const createSpoilerEngine = (
             };
 
             const wasSettled = machine.getState() === "settled";
-            targets = sampleTextTargets(text, spec, W, H, gap);
+            targets = sampleTextTargets(text, spec, W, H, SAMPLING_GAP);
             particles = createParticles(targets.length, W, H);
-            applyEffects(
-                machine.send({ type: "reset", settled: wasSettled }),
-            );
+            applyEffects(machine.send({ type: "reset", settled: wasSettled }));
         };
 
         setup();
