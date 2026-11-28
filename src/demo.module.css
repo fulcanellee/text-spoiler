@@ -1,8 +1,8 @@
-.Demo {
+.root {
   text-align: center;
 }
 
-.Demo-header {
+.header {
   background-color: #282c34;
   min-height: 100vh;
   display: flex;
@@ -13,14 +13,14 @@
   color: white;
 }
 
-.Demo-controls {
+.controls {
   margin-top: 56px;
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.Demo-controls-label {
+.controlsLabel {
   font-size: 14px;
   letter-spacing: 0.04em;
   color: rgba(255, 255, 255, 0.55);

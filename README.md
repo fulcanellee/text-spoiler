@@ -2,6 +2,8 @@
 
 React component that conceals text behind animated particles and reveals it like a spoiler. The text is rendered to a canvas, sampled into particles that drift like sand, and assembles into readable glyphs when revealed.
 
+**Zero runtime dependencies** — the package ships no dependencies at all, only `react`/`react-dom` as peer dependencies.
+
 [Live demo](https://fulcanellee.github.io/text-spoiler)
 
 ## Install
@@ -31,7 +33,7 @@ export function Secret() {
 }
 ```
 
-The component imports its own stylesheet. If your setup does not process CSS imports from dependencies, import it manually:
+The component imports its own stylesheet. It is a CSS module, so class names are scoped and will not collide with your app's styles. If your setup does not process CSS imports from dependencies, import it manually:
 
 ```ts
 import "text-spoiler/styles.css";
