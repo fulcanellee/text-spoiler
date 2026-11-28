@@ -29,11 +29,15 @@ import { sampleTextTargets } from "./textSampler";
 export interface SpoilerEngineOptions {
     text: string;
     color: string;
+    revealed: boolean;
     onReveal(): void;
     onConceal(): void;
+    onRevealed?(): void;
+    onHidden?(): void;
 }
 
 export interface SpoilerEngine {
+    setRevealed(revealed: boolean): void;
     destroy(): void;
 }
 
@@ -41,9 +45,19 @@ export const createSpoilerEngine = (
     stage: HTMLDivElement,
     textEl: HTMLDivElement,
     canvas: HTMLCanvasElement,
-    { text, color, onReveal, onConceal }: SpoilerEngineOptions,
+    {
+        text,
+        color,
+        revealed,
+        onReveal,
+        onConceal,
+        onRevealed,
+        onHidden,
+    }: SpoilerEngineOptions,
 ): SpoilerEngine => {
     let cancelled = false;
+    let desiredRevealed = revealed;
+    let inner: ((nextRevealed: boolean) => void) | null = null;
     const cleanups: Array<() => void> = [];
     const ink = resolveColorChannels(color);
 
@@ -99,6 +113,12 @@ export const createSpoilerEngine = (
                     case "conceal":
                         onConceal();
                         break;
+                    case "notify-revealed":
+                        onRevealed?.();
+                        break;
+                    case "notify-hidden":
+                        onHidden?.();
+                        break;
                 }
             }
             return stopLoop;
@@ -147,24 +167,13 @@ export const createSpoilerEngine = (
         const loop = createRenderLoop(onFrame);
         cleanups.push(() => loop.stop());
 
-        const toggle = (): void => {
-            applyEffects(machine.send({ type: "toggle" }));
+        inner = (nextRevealed: boolean): void => {
+            applyEffects(
+                machine.send({ type: "set-revealed", revealed: nextRevealed }),
+            );
         };
 
-        const onKeyDown = (e: KeyboardEvent): void => {
-            if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                toggle();
-            }
-        };
-
-        stage.addEventListener("click", toggle);
-        stage.addEventListener("keydown", onKeyDown);
-        cleanups.push(() => {
-            stage.removeEventListener("click", toggle);
-            stage.removeEventListener("keydown", onKeyDown);
-        });
-
+        let initialized = false;
         const setup = (): void => {
             const rect = stage.getBoundingClientRect();
             W = rect.width;
@@ -192,7 +201,13 @@ export const createSpoilerEngine = (
             const wasSettled = machine.getState() === "settled";
             targets = sampleTextTargets(text, spec, W, H, SAMPLING_GAP);
             particles = createParticles(targets.length, W, H);
-            applyEffects(machine.send({ type: "reset", settled: wasSettled }));
+            applyEffects(
+                machine.send({
+                    type: "reset",
+                    settled: initialized ? wasSettled : desiredRevealed,
+                }),
+            );
+            initialized = true;
         };
 
         setup();
@@ -225,6 +240,10 @@ export const createSpoilerEngine = (
     void boot();
 
     return {
+        setRevealed(nextRevealed: boolean) {
+            desiredRevealed = nextRevealed;
+            inner?.(nextRevealed);
+        },
         destroy() {
             cancelled = true;
             cleanups.forEach((fn) => fn());

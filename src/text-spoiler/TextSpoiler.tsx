@@ -1,40 +1,70 @@
-import { FC, useEffect, useRef, useState } from "react";
+import { FC, useEffect, useMemo, useRef, useState } from "react";
 import type { TextSpoilerProps } from "./types";
 import { createSpoilerEngine } from "./core/engine";
+import type { SpoilerEngine } from "./core/engine";
 import { DEFAULT_PARTICLE_COLOR } from "./core/constants";
 import "./TextSpoiler.css";
 
 export const TextSpoiler: FC<TextSpoilerProps> = (props) => {
-    const { color = DEFAULT_PARTICLE_COLOR, children: text } = props;
+    const {
+        in: revealed,
+        color = DEFAULT_PARTICLE_COLOR,
+        children: text,
+        onRevealed,
+        onHidden,
+    } = props;
 
     const stageRef = useRef<HTMLDivElement>(null);
     const textRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [settled, setSettled] = useState(false);
+    const engineRef = useRef<SpoilerEngine | null>(null);
+
+    const reducedMotion = useMemo(
+        () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+        [],
+    );
+    const [engineSettled, setEngineSettled] = useState(revealed);
+    const settled = reducedMotion ? revealed : engineSettled;
+
+    const revealedRef = useRef(revealed);
+    const onRevealedRef = useRef(onRevealed);
+    const onHiddenRef = useRef(onHidden);
+
+    useEffect(() => {
+        revealedRef.current = revealed;
+        engineRef.current?.setRevealed(revealed);
+    }, [revealed]);
+
+    useEffect(() => {
+        onRevealedRef.current = onRevealed;
+        onHiddenRef.current = onHidden;
+    }, [onRevealed, onHidden]);
 
     useEffect(() => {
         const stage = stageRef.current;
         const textEl = textRef.current;
         const canvas = canvasRef.current;
 
-        if (!stage || !textEl || !canvas) {
-            return;
-        }
-
-        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-            setSettled(true);
+        if (!stage || !textEl || !canvas || reducedMotion) {
             return;
         }
 
         const engine = createSpoilerEngine(stage, textEl, canvas, {
             text,
             color,
-            onReveal: () => setSettled(true),
-            onConceal: () => setSettled(false),
+            revealed: revealedRef.current,
+            onReveal: () => setEngineSettled(true),
+            onConceal: () => setEngineSettled(false),
+            onRevealed: () => onRevealedRef.current?.(),
+            onHidden: () => onHiddenRef.current?.(),
         });
+        engineRef.current = engine;
 
-        return () => engine.destroy();
-    }, [color, text]);
+        return () => {
+            engine.destroy();
+            engineRef.current = null;
+        };
+    }, [color, text, reducedMotion]);
 
     return (
         <div
@@ -42,10 +72,6 @@ export const TextSpoiler: FC<TextSpoilerProps> = (props) => {
             className={
                 settled ? "text-spoiler-stage settled" : "text-spoiler-stage"
             }
-            role="button"
-            tabIndex={0}
-            aria-pressed={settled}
-            aria-label="Spoiler: click to show hidden text"
         >
             <div ref={textRef} className="text-spoiler-text">
                 {text}

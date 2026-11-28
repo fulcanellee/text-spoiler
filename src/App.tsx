@@ -1,15 +1,19 @@
-import React from "react";
-import "./App.css";
-import { TextSpoiler } from "./text-spoiler/TextSpoiler";
+import React, { useState } from 'react';
+import './App.css';
+import {TextSpoiler} from "./text-spoiler/TextSpoiler";
 
 function App() {
-    return (
-        <div className="App">
-            <header className="App-header">
-                <TextSpoiler>The secret is hidden in the dots</TextSpoiler>
-            </header>
-        </div>
-    );
+  const [revealed, setRevealed] = useState(false);
+
+  return (
+    <div className="App">
+      <header className="App-header">
+          <div onClick={() => setRevealed((v) => !v)}>
+              <TextSpoiler in={revealed}>The secret is hidden in the dots</TextSpoiler>
+          </div>
+      </header>
+    </div>
+  );
 }
 
 export default App;

@@ -1,6 +1,9 @@
 export interface TextSpoilerProps {
+    in: boolean;
     color?: string;
     children: string;
+    onRevealed?(): void;
+    onHidden?(): void;
 }
 
 export interface Particle {

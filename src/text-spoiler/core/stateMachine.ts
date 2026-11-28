@@ -6,10 +6,12 @@ export type SpoilerEffect =
     | "start-loop"
     | "stop-loop"
     | "reveal"
-    | "conceal";
+    | "conceal"
+    | "notify-revealed"
+    | "notify-hidden";
 
 export type SpoilerEvent =
-    | { type: "toggle" }
+    | { type: "set-revealed"; revealed: boolean }
     | { type: "reveal-threshold" }
     | { type: "particles-gone" }
     | { type: "reset"; settled: boolean };
@@ -26,14 +28,25 @@ export const createSpoilerStateMachine = (): SpoilerStateMachine => {
 
     const send = (event: SpoilerEvent): SpoilerEffect[] => {
         switch (event.type) {
-            case "toggle": {
-                if (state === "hidden") {
-                    state = "assembling";
-                    return ["assign-targets", "start-loop"];
+            case "set-revealed": {
+                if (event.revealed) {
+                    if (state === "hidden") {
+                        state = "assembling";
+                        return ["assign-targets", "start-loop"];
+                    }
+                    return [];
                 }
-                state = "hidden";
-                revealStarted = false;
-                return ["conceal", "scatter", "start-loop"];
+                if (state !== "hidden") {
+                    state = "hidden";
+                    revealStarted = false;
+                    return [
+                        "conceal",
+                        "scatter",
+                        "start-loop",
+                        "notify-hidden",
+                    ];
+                }
+                return [];
             }
             case "reveal-threshold": {
                 if (state === "assembling" && !revealStarted) {
@@ -46,16 +59,22 @@ export const createSpoilerStateMachine = (): SpoilerStateMachine => {
                 if (state === "assembling" && revealStarted) {
                     state = "settled";
                     revealStarted = false;
-                    return ["stop-loop"];
+                    return ["stop-loop", "notify-revealed"];
                 }
                 return [];
             }
             case "reset": {
-                if (!event.settled) {
-                    state = "hidden";
-                    return ["conceal", "start-loop"];
+                if (event.settled) {
+                    if (state === "settled") {
+                        return [];
+                    }
+                    state = "settled";
+                    revealStarted = false;
+                    return ["reveal"];
                 }
-                return [];
+                state = "hidden";
+                revealStarted = false;
+                return ["conceal", "start-loop"];
             }
         }
     };
